@@ -1,0 +1,6 @@
+# ignore tsv folders and zip files
+*.tsv
+*.gz
+
+# ignore pkl files
+pkl
