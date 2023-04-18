@@ -4,3 +4,4 @@
 
 # ignore pkl files
 pkl
+*.pkl

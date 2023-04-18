@@ -17,7 +17,7 @@ def main():
 
   for index, row in popular_movies.iterrows():
     vec = np.zeros(1 + 1 + 1 + 1 + len(genres)) # rating, numRatings, runtimes, years, genres
-    vec[0] = scale(1, 10, int(row['averageRating']))
+    vec[0] = scale(1, 10, float(row['averageRating']))
     vec[1] = scale(min(numRatings), max(numRatings), int(row['numVotes']))
     try:
       vec[2] = scale(min(runtimes), max(runtimes), int(row['runtimeMinutes']))

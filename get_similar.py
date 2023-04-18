@@ -20,7 +20,7 @@ def main():
   names = [n for n, _ in namesVectors]
   vecs = [v for _, v in namesVectors]
 
-  for movie in topSimilar('Pulp Fiction', names, vecs, actors=actors, directors=directors, num=20):
+  for movie in topSimilar('Shrek', names, vecs, actors=actors, directors=directors, num=20):
     print(movie)
 
   pass
@@ -36,7 +36,7 @@ def topSimilar(name, names, vecs, actors=None, directors=None, num=10):
   director_sim = np.zeros( len(names) )
 
   if actors:
-    actor_sig = 0.10
+    actor_sig = 0.20
     act_sim = []
     for a in actors:
       if np.linalg.norm(a) != 0:
@@ -47,11 +47,11 @@ def topSimilar(name, names, vecs, actors=None, directors=None, num=10):
     act_sim = np.array(act_sim)
   
   if directors:
-    director_sig = 0.15
+    director_sig = 0.20
     director_sim = []
     for d in directors: 
       if np.linalg.norm(d) != 0:
-        director_sim.append( cosine(a, actors[movieIndex]) )
+        director_sim.append( cosine(d, directors[movieIndex]) )
       else:
         director_sim.append( 0 )
     director_sim = np.array(director_sim)
