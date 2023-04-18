@@ -26,6 +26,12 @@ def main():
 
     vec[3] = scale(min(years),max(years), int(row['startYear']))
 
+    '''
+    vec[0] = 0
+    vec[1] = 0
+    vec[3] = 0
+    '''
+
     gen = row['genres'].lower().split(',')
     for ind, g in enumerate(genres):
       if g in gen:
