@@ -2,6 +2,11 @@
 *.tsv
 *.gz
 
-# ignore pkl files
+# ignore pkl and csv files
 pkl
 *.pkl
+
+# ignore __pycache__
+__pycache__
+
+samples
