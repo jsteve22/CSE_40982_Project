@@ -1,0 +1,4 @@
+chat gpt2
+nano gpt (small opensource gpt)
+lamma lora ("alpaca lora github") # look at 2nd
+gpt-j ('runs on colab') # look at 1st since on colab

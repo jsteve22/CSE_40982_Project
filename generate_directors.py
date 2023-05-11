@@ -6,13 +6,11 @@ def main():
   # vectors: rating, numRatings, releaseYear, runtime, genres...
   directors = load_pickle('directors.pkl')
 
-  '''
   d = {}
   for key, val in directors.items():
-    if val > 1:
+    if val > 5:
       d[key] = val
   directors = d
-  '''
 
   directorsSize = len(directors)
   directorsConvert = load_pickle('directorsConvert.pkl')
@@ -37,7 +35,7 @@ def main():
 
     directorsVectors.append(vec)
 
-  with open('directorsVectors.pkl', 'wb') as f:
+  with open('dVectors.pkl', 'wb') as f:
     pkl.dump(directorsVectors, f)
 
   return

@@ -5,6 +5,13 @@ import pickle as pkl
 def main():
   # vectors: rating, numRatings, releaseYear, runtime, genres...
   actors = load_pickle('actors.pkl')
+
+  a = {}
+  for key, val in actors.items():
+    if val > 15:
+      a[key] = val
+  actors = a
+
   actorsSize = len(actors)
   actorsConvert = load_pickle('actorsConvert.pkl')
 
@@ -28,7 +35,7 @@ def main():
 
     actorsVectors.append(vec)
 
-  with open('actorsVectors.pkl', 'wb') as f:
+  with open('aVectors.pkl', 'wb') as f:
     pkl.dump(actorsVectors, f)
 
   return

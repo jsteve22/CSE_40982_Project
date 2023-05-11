@@ -35,7 +35,7 @@ class Question(Message):
 
 class AskSimilar(Message):
   def __init__(self, movie):
-    self.s = f'What do you think about {movie}?'
+    self.s = f'What do you think about {movie} ?'
   
   def __str__(self):
     return f'{self.s}'

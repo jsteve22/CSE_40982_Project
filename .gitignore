@@ -10,3 +10,5 @@ pkl
 __pycache__
 
 samples
+*.zip
+*.json
