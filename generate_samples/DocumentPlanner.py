@@ -14,7 +14,7 @@ class DocumentPlanner():
   def __init__(self):
     self.messages = []
     self.mp = MicroPlanner()
-    popular = pd.read_pickle('../popular_movies.pkl')
+    popular = pd.read_pickle('./popular_movies.pkl')
     popular = popular.reset_index(drop=True)
     self.movies = popular[popular['numVotes'] > 50000].sort_values(by=['numVotes','averageRating','startYear'], ascending=False).iloc[:250]
   

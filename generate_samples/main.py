@@ -3,8 +3,13 @@
 import pandas as pd
 import numpy as np
 import pickle as pkl
+import sys
+import time
 
 from DocumentPlanner import DocumentPlanner
+
+
+dp = DocumentPlanner()
 
 YES = ['yes', 'yes i would like that', 'yeah', 'yes thank you', 'yes please', 'yea', 'yes i want that']
 NO  = ['no', 'not feeling that', 'i do not want that', 'no thanks', 'no thank you', 'not for me', 'nah']
@@ -20,33 +25,40 @@ def pkl_load(filename):
   with open(filename, 'rb') as f:
     return pkl.load(f)
 
+cosine = lambda x,y: np.dot(x,y) / ( np.linalg.norm(x)*np.linalg.norm(y)) if (np.linalg.norm(x)*np.linalg.norm(y)) != 0 else 0
+
 def makeRecommendation(user, data, userSaw, num=10):
    
     names, movies, actors, directors = data
     userMovies, userActors, userDirectors = user
-
-    cosine = lambda x,y: np.dot(x,y) / ( np.linalg.norm(x)*np.linalg.norm(y)) if (np.linalg.norm(x)*np.linalg.norm(y)) != 0 else 0
     
+    # cos_sim = [cosine(v, userMovies) for v in movies]
+    m_start = time.perf_counter()
     cos_sim = [cosine(v, userMovies) for v in movies]
+    m_end = time.perf_counter() - m_start
     cos_sim = np.array(cos_sim)
 
     # breakpoint()
     actor_sig = 0.1
+    a_start = time.perf_counter()
     act_sim = []
     for a in actors:
         if np.linalg.norm(a) != 0:
             act_sim.append(cosine(a, userActors))
         else:
             act_sim.append(0)
+    a_end = time.perf_counter() - a_start
     act_sim = np.array(act_sim)
 
     director_sig = 0.15
+    d_start = time.perf_counter()
     director_sim = []
     for d in directors:
         if np.linalg.norm(d) != 0:
             director_sim.append(cosine(d, userDirectors))
         else:
             director_sim.append(0)
+    d_end = time.perf_counter() - d_start
     director_sim = np.array(director_sim)
 
     sim = cos_sim * (1 - actor_sig - director_sig)
@@ -55,22 +67,33 @@ def makeRecommendation(user, data, userSaw, num=10):
 
     arg_max = np.flip( np.argsort(sim))
     ret = [ names[i] for i in arg_max ] 
+    arr = [ movies[i] for i in arg_max ]
+
+    # print(f'times:{m_end:.5f}\t{a_end:0.5f}\t{d_end:0.5f}')
     if userSaw:
         r = []
-        for ri in ret:
+        a = []
+        for ri, ai in zip(ret, arr):
             if ri not in userSaw:
-                r.append(ri)
+                r.append((ri,ai))
                 if len(r) == num:
                     return r
 
-    return ret[0]
+    return ret[0], arr[0]
 
-if __name__ == '__main__':
-
+def main(movieVecs=None, actors=None, directors=None, questions=None, output=None):
+    if output == None:
+        output = sys.stdout 
     # Load in vectors
-    movieVecs = pkl_load('../vectors.pkl')
-    actors    = pkl_load('../actorsVectors.pkl')
-    directors = pkl_load('../directorsVectors.pkl')
+    movieVecs = pkl_load('./vectors.pkl') if movieVecs == None else movieVecs 
+    actors    = pkl_load('./aVectors.pkl') if actors == None else actors    
+    directors = pkl_load('./dVectors.pkl') if directors == None else directors 
+    questions = questions
+    try:
+        if questions == None:
+            questions = pd.read_csv('questions.csv',names=['Category','Question'],header=None) 
+    except:
+        pass
 
     names  = [n for n, _ in movieVecs]
     movies = [v for _, v in movieVecs]
@@ -79,82 +102,60 @@ if __name__ == '__main__':
     userActors    = np.ones(len(actors[0]), dtype=float) / 2
     userDirectors = np.ones(len(directors[0]), dtype=float) / 2
 
-    questions = pd.read_csv('questions.csv',names=['Category','Question'],header=None)
+    randomNum = np.random.randint(0,len(movies))
+    target = np.array(movies[randomNum])
+    # print(f'movie: {names[randomNum]}')
+    # print(f'array: {target}')
 
-    dp = DocumentPlanner()
 
     # Question 1: Introduction
-    # print(questions.loc[questions['Category'] == 0]['Question'].sample().iloc[0])
-    print( dp.ask_greeting() )
-    print(get_prompt(YES))
-    print()
+    # output.write(questions.loc[questions['Category'] == 0]['Question'].sample().iloc[0])
+    output.write(f'QUESTION:GREETING:: {dp.ask_greeting()}\n')
+    output.write(f'ANSWER:YES:: {get_prompt(YES)}\n')
+    output.write('\n')
 
-    # Question 2: Rating
-    # print(questions.loc[questions['Category'] == 2]['Question'].sample().iloc[0])
+    # Question 2: Popular
+    # output.write(questions.loc[questions['Category'] == 3]['Question'].sample().iloc[0])
+    output.write(f'QUESTION:POPULAR:: {dp.ask_popular()}\n')
 
-    # answer = np.random.choice(['yes','no'])
-
-    # if answer == 'yes':
-    #     userMovies[0] += 0.5
-
-    # print(answer)
-
-
-    # Question 3: Popular
-    # print(questions.loc[questions['Category'] == 3]['Question'].sample().iloc[0])
-    print( dp.ask_popular() )
-
-    answer = np.random.choice(['yes','no'])
-
-    if answer == 'yes':
-        print( get_prompt(YES) )
+    if target[1] > 0.5:
+        output.write(f'ANSWER:YES:: {get_prompt(YES)}\n')
         userMovies[1] += 0.35
     else:
-        print( get_prompt(NO) )
+        output.write(f'ANSWER:NO:: {get_prompt(NO)}\n')
         userMovies[1] -= 0.35
-    print()
+    output.write('\n')
 
 
     # Question 4: Year filmed
-    # print(questions.loc[questions['Category'] == 4]['Question'].sample().iloc[0])
-    print( dp.ask_year() )
+    # output.write(questions.loc[questions['Category'] == 4]['Question'].sample().iloc[0])
+    output.write(f'QUESTION:YEAR:: {dp.ask_year()}\n')
     answer = np.random.choice(['yes','no'])
-    if answer == 'yes':
-        print( get_prompt(YES) )
+    if target[3] < 0.5:
+        output.write(f'ANSWER:YES:: {get_prompt(YES)}\n')
         userMovies[3] -= 0.35
     else:
-        print( get_prompt(NO) )
+        output.write(f'ANSWER:NO:: {get_prompt(NO)}\n')
         userMovies[3] += 0.35
-    print()
+    output.write('\n')
 
 
     # Question 5: Runtime
-    # print(questions.loc[questions['Category'] == 5]['Question'].sample().iloc[0])
-    print( dp.ask_runtime() )
+    # output.write(questions.loc[questions['Category'] == 5]['Question'].sample().iloc[0])
+    output.write(f'QUESTION:RUNTIME:: {dp.ask_runtime()}\n')
     answer = np.random.choice(['yes','no'])
-    if answer == 'yes':
-        print( get_prompt(YES) )
+    if target[2] > 0.5:
+        output.write(f'ANSWER:YES:: {get_prompt(YES)}\n')
         userMovies[2] += 0.35
     else:
-        print( get_prompt(NO) )
+        output.write(f'ANSWER:NO:: {get_prompt(NO)}\n')
         userMovies[2] -= 0.35
-    print()
+    output.write('\n')
 
     # Question 6: Genres
-    # print(questions.loc[questions['Category'] == 1]['Question'].sample().iloc[0])
+    # output.write(questions.loc[questions['Category'] == 1]['Question'].sample().iloc[0])
      
     # answer = np.random.choice(['horror','action','comedy','drama'])    
-
-
-    # Question 7: Actors 
-    # print(questions.loc[questions['Category'] == 6]['Question'].sample().iloc[0])
-
-    # print(actors)
-
-
-    # Question 8: Directors
-    # print(questions.loc[questions['Category'] == 7]['Question'].sample().iloc[0])
-
 
     # Question 9: Similar movies
     # popular = pd.read_pickle('../popular_movies.pkl')
@@ -177,45 +178,53 @@ if __name__ == '__main__':
 
         userSaw.append(randomMovieName)
         index = names.index(randomMovieName)
-        print(f'What do you think about {randomMovieName}?')
-        print(f'\t1 if you like it')
-        print(f'\t2 if you do not like it')
-        print(f'\t3 if you do not know it')
+        output.write(f'What do you think about {randomMovieName}?')
+        output.write(f'\t1 if you like it')
+        output.write(f'\t2 if you do not like it')
+        output.write(f'\t3 if you do not know it')
         '''
 
         q, randomMovieName = dp.ask_similar(userSaw)
-        print(q)
+        output.write(f'QUESTION:SIMILAR:: {q}\n')
         userSaw.append(randomMovieName)
         index = names.index(randomMovieName)
 
-        userInput = np.random.choice([1,2,3])
+        # userInput = np.random.choice([1,2,3])
+        userInput = 3
+        cosineSim = cosine(target, np.array(movies[index]))
+        # print(f'cosineSim in while: {cosineSim}')
+        if (cosineSim > 0.60):
+            userInput = 1
+        if (cosineSim < 0.40):
+            userInput = 2
+
         ratio = 0.75
         invRatio = 1 - ratio
 
-        # print(userInput)
+        # output.write(userInput)
 
         if (userInput == 1):
-            print( get_prompt(LIKE) )
+            output.write(f'ANSWER:YES:: {get_prompt(LIKE)}\n')
             userMovies    = userMovies + (ratio * diff(userMovies, movies[index]))
             userActors    = userActors + (ratio * diff(userActors, actors[index]))
             userDirectors = userDirectors + (ratio * diff(userDirectors, directors[index]))
             i += 1
             ratio = ratio ** 2
         elif (userInput == 2):
-            print( get_prompt(DISLIKE) )
+            output.write(f'ANSWER:NO:: {get_prompt(DISLIKE)}\n')
             userMovies    = userMovies - (ratio * diff(userMovies, movies[index]))
             userActors    = userActors - (ratio * diff(userActors, actors[index]))
             userDirectors = userDirectors - (ratio * diff(userDirectors, directors[index]))
             i += 1
             ratio = ratio ** 2
         else:
-            print( get_prompt(AMBIG) )
+            output.write(f'ANSWER:AMBIG:: {get_prompt(AMBIG)}\n')
             userMovies    = userMovies - (invRatio * diff(userMovies, movies[index]))
             userActors    = userActors - (invRatio * diff(userActors, actors[index]))
             userDirectors = userDirectors - (invRatio * diff(userDirectors, directors[index]))
             i += 1
             ratio = ratio ** 2
-        print()
+        output.write('\n')
           
     userMovies = bound(userMovies)
     userActors = bound(userActors)
@@ -227,20 +236,41 @@ if __name__ == '__main__':
     want_to_watch = False
     recommendedMovie = ''
 
-    for recommendedMovie in makeRecommendation(user, data, userSaw):
-        print(f'Do you want to watch {recommendedMovie} ?')
-        want_to_watch = np.random.choice([True, False], p=[0.8,0.2])
+    for recommendedMovie, movieArray in makeRecommendation(user, data, userSaw):
+        output.write(f'QUESTION:RECOMMENDATION:: Do you want to watch {recommendedMovie} ?\n')
+        # want_to_watch = np.random.choice([True, False], p=[0.8,0.2])
+        cosineSim = cosine(target, np.array(movieArray))
+        # print(f'consineSim in recommend: {cosineSim}')
+        want_to_watch = True
+        simLimit = 0.50
+        if cosineSim < simLimit:
+            want_to_watch = False
+        simLimit -= 0.10
+
         if (want_to_watch):
-            print( get_prompt(YES) )
-            print()
-            # print('yes')
+            output.write(f'ANSWER:YES:: {get_prompt(YES)}\n')
+            output.write('\n')
+            # output.write('yes')
             break
         else:
-            print( get_prompt(NO) )
-            print()
-            # print('no')
+            output.write(f'ANSWER:NO:: {get_prompt(NO)}\n')
+            output.write('\n')
+            # output.write('no')
     
     '''
     for rm in makeRecommendation(user, data, userSaw, num=30):
-        print(rm)
+        output.write(rm)
     '''
+
+if __name__ == '__main__':
+    movieVecs = pkl_load('./vectors.pkl') 
+    actors    = pkl_load('./aVectors.pkl') 
+    directors = pkl_load('./dVectors.pkl') 
+    questions = pd.read_csv('questions.csv',names=['Category','Question'],header=None) 
+    # main(movieVecs, actors, directors, questions)
+    nextStart = 7000
+    start = 0 + nextStart
+    end = 3000 + nextStart
+    for i in range(start, end):
+        with open(f'samples/{i}.txt', 'w') as f:
+            main(movieVecs, actors, directors, questions, output=f)
