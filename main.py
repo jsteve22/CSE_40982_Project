@@ -3,6 +3,8 @@
 import pandas as pd
 import numpy as np
 import pickle as pkl
+import tensorflow as tf
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 import sys
 import time
 
@@ -24,6 +26,22 @@ get_prompt = lambda arr: arr[ np.random.randint(0, len(arr)-1) ]
 def pkl_load(filename):
   with open(filename, 'rb') as f:
     return pkl.load(f)
+
+def categorize_sentence(sentence, model, tokenizer):
+    seq = tokenizer.texts_to_sequences( [sentence] )
+    newseq = pad_sequences(seq, padding='post', truncating='post', maxlen=200)
+    pred = model.predict( newseq )
+    '''
+    ret = np.argmax(pred)
+    if ret == 0:
+        print('RESPONSE == YES')
+    elif ret == 1:
+        print('RESPONSE == NO')
+    elif ret == 2:
+        print('RESPONSE == AMBIG')
+    '''
+
+    return np.argmax(pred)
 
 cosine = lambda x,y: np.dot(x,y) / ( np.linalg.norm(x)*np.linalg.norm(y)) if (np.linalg.norm(x)*np.linalg.norm(y)) != 0 else 0
 
@@ -81,7 +99,147 @@ def makeRecommendation(user, data, userSaw, num=10):
 
     return ret[0], arr[0]
 
-def main(movieVecs=None, actors=None, directors=None, questions=None, output=None):
+def main(movieVecs=None, actors=None, directors=None, questions=None):
+
+    # load tokenizer
+    token_json = ''
+    with open('./movie_tok.json', 'r') as f:
+        for line in f:
+            token_json += line.rstrip()
+    tokenizer = tf.keras.preprocessing.text.tokenizer_from_json( token_json )
+    model = tf.keras.models.load_model('./movie_lstm.h5')
+
+    output = sys.stdout 
+    # Load in vectors
+    movieVecs = pkl_load('./vectors.pkl') if movieVecs == None else movieVecs 
+    actors    = pkl_load('./aVectors.pkl') if actors == None else actors    
+    directors = pkl_load('./dVectors.pkl') if directors == None else directors 
+    questions = questions
+    try:
+        if questions == None:
+            questions = pd.read_csv('questions.csv',names=['Category','Question'],header=None) 
+    except:
+        pass
+
+    names  = [n for n, _ in movieVecs]
+    movies = [v for _, v in movieVecs]
+
+    userMovies    = np.ones(len(movies[0]), dtype=float) / 2
+    userActors    = np.ones(len(actors[0]), dtype=float) / 2
+    userDirectors = np.ones(len(directors[0]), dtype=float) / 2
+
+    randomNum = np.random.randint(0,len(movies))
+    target = np.array(movies[randomNum])
+    # print(f'movie: {names[randomNum]}')
+    # print(f'array: {target}')
+
+
+    # Question 1: Introduction
+    # output.write(questions.loc[questions['Category'] == 0]['Question'].sample().iloc[0])
+    output.write(f'{dp.ask_greeting()}\n')
+    resp = categorize_sentence( input(), model, tokenizer )
+    if resp == 1:
+        output.write(f'Have a nice day!\n')
+        return
+
+    # Question 2: Popular
+    # output.write(questions.loc[questions['Category'] == 3]['Question'].sample().iloc[0])
+    output.write(f'{dp.ask_popular()}\n')
+    resp = categorize_sentence( input(), model, tokenizer )
+
+    if resp == 0:
+        userMovies[1] += 0.35
+    else:
+        userMovies[1] -= 0.35
+    output.write('\n')
+
+
+    # Question 4: Year filmed
+    # output.write(questions.loc[questions['Category'] == 4]['Question'].sample().iloc[0])
+    output.write(f'{dp.ask_year()}\n')
+    resp = categorize_sentence( input(), model, tokenizer )
+    if resp == 0:
+        userMovies[3] -= 0.35
+    else:
+        userMovies[3] += 0.35
+    output.write('\n')
+
+
+    # Question 5: Runtime
+    # output.write(questions.loc[questions['Category'] == 5]['Question'].sample().iloc[0])
+    output.write(f'{dp.ask_runtime()}\n')
+    resp = categorize_sentence( input(), model, tokenizer )
+    if resp == 0:
+        userMovies[2] += 0.35
+    else:
+        userMovies[2] -= 0.35
+    output.write('\n')
+
+    userSaw = []
+    diff = lambda x, y: (y-x)/2
+    bound = lambda array: np.minimum( np.ones(len(array)), np.maximum( np.zeros(len(array)), array) )
+
+    i = 0
+    output.write('Still collecting data...\n')
+    while (i < 3):
+
+        q, randomMovieName = dp.ask_similar(userSaw)
+        output.write(f'{q}\n')
+        userSaw.append(randomMovieName)
+        index = names.index(randomMovieName)
+
+        resp = categorize_sentence( input(), model, tokenizer )
+
+        ratio = 0.75
+        invRatio = 1 - ratio
+
+        # output.write(userInput)
+
+        if (resp == 0):
+            userMovies    = userMovies + (ratio * diff(userMovies, movies[index]))
+            userActors    = userActors + (ratio * diff(userActors, actors[index]))
+            userDirectors = userDirectors + (ratio * diff(userDirectors, directors[index]))
+            i += 1
+            ratio = ratio ** 2
+        elif (resp == 1):
+            userMovies    = userMovies - (ratio * diff(userMovies, movies[index]))
+            userActors    = userActors - (ratio * diff(userActors, actors[index]))
+            userDirectors = userDirectors - (ratio * diff(userDirectors, directors[index]))
+            i += 1
+            ratio = ratio ** 2
+        else:
+            userMovies    = userMovies - (invRatio * diff(userMovies, movies[index]))
+            userActors    = userActors - (invRatio * diff(userActors, actors[index]))
+            userDirectors = userDirectors - (invRatio * diff(userDirectors, directors[index]))
+            i += 1
+            ratio = ratio ** 2
+        output.write('\n')
+          
+    userMovies = bound(userMovies)
+    userActors = bound(userActors)
+    userDirectors = bound(userDirectors)
+
+    user = (userMovies, userActors, userDirectors)
+    data = (names, movies, actors, directors)
+
+    want_to_watch = False
+    recommendedMovie = ''
+
+    output.write('Making recommendations...\n')
+    for recommendedMovie, movieArray in makeRecommendation(user, data, userSaw, num=100):
+        output.write(f'Do you want to watch {recommendedMovie} ?\n')
+        resp = categorize_sentence( input(), model, tokenizer )
+
+        if (resp == 0):
+            output.write('Enjoy your movie!\n')
+            break
+        else:
+            output.write('\n')
+    # else:
+        # output.write('You did not like any of the 100 movies? Really?\n')
+    
+
+def generate_sample(movieVecs=None, actors=None, directors=None, questions=None, output=None):
     if output == None:
         output = sys.stdout 
     # Load in vectors
@@ -267,10 +425,12 @@ if __name__ == '__main__':
     actors    = pkl_load('./aVectors.pkl') 
     directors = pkl_load('./dVectors.pkl') 
     questions = pd.read_csv('questions.csv',names=['Category','Question'],header=None) 
-    # main(movieVecs, actors, directors, questions)
+    main(movieVecs, actors, directors, questions)
+    '''
     nextStart = 7000
     start = 0 + nextStart
     end = 3000 + nextStart
     for i in range(start, end):
         with open(f'samples/{i}.txt', 'w') as f:
-            main(movieVecs, actors, directors, questions, output=f)
+            generate_sample(movieVecs, actors, directors, questions, output=f)
+    '''
