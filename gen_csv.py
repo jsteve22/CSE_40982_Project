@@ -12,13 +12,13 @@ def main():
     print()
   return
   '''
-  with open('training_data1000.pkl', 'wb') as fb:
+  with open('training_data100.pkl', 'wb') as fb:
     training = {}
     training['instruction'] = []
     training['input']       = []
     training['output']      = []
 
-    for i in range(1,1001):
+    for i in range(1,101):
       outputs = convert_sample_to_tuples(f'./samples/{i}.txt')
       for o in outputs:
         training['instruction'].append(o[0])
@@ -39,42 +39,42 @@ def convert_sample_to_tuples(filename):
     instr = 'Ask user if they want to watch a popular movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
     q = 6
     instr = 'Ask user if they want to watch an old movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
     q = 9
     instr = 'Ask user if they want to watch a long movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
     q = 12
     instr = 'Ask the user what they think about a movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
     q = 15
     instr = 'Ask the user what they think about a movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
     q = 18
     instr = 'Ask the user what they think about a movie'
     inp   = clean_strings(lines[:q-1])
     inp   = ''
-    out   = lines[q].rstrip()
+    out   = lines[q].rstrip().split('::')[1][1:]
     outputs.append( (instr, inp, out) )
 
 
