@@ -10,7 +10,7 @@ In order to run our dialogue system, you would first need to get all of the requ
 Then run ```python3 main.py``` to execute the dialgoue system. 
 
 ## Our Plan
-The idea of our dialogue system was to create a LLM model that is fine tuned to act as the dialogue system for recommending movies. 
+The idea of our dialogue system was to create a LLM model that is fine-tuned to act as the dialogue system for recommending movies. 
 We got all of our data from IMDB, found at this [link](https://developer.imdb.com/non-commercial-datasets/). 
 We then used python scripts to convert the .tsv files into binary files using pickle and pandas. 
 After creating pandas dataframes for the movie data, we generated 3 vectors for a subset of the 10,000 most popular movies in the dataset. 
@@ -24,24 +24,24 @@ We generated 10,000 sample conversations by selecting a random movie and answeri
 After generating the sample conversations, we then tokenized each conversation for each question asked and each answer given. 
 
 ## Finetuning a model
-Once we had all of our data generated, we started our attempt to finetune models.
-We first started by trying to Finetune GPT-J, but we were having difficulties with getting GPT-J to run. 
+Once we had all of our data generated, we started our attempt to fine-tune models.
+We first started by trying to fine-tune GPT-J, but we were having difficulties with getting GPT-J to run. 
 We tried getting GPT-J to run on Google-Colab, but the base model could not fit into the systems memory before being transferred over to the GPU's memory with the free version of Google-Colab. 
-We tried implementing the 8bit quantization to decreaset the size of the model when loaded in memory, but it did not help. 
+We tried implementing the 8bit quantization to decrease the size of the model when loaded in memory, but it did not help. 
 We then tried finetuning the model on Paperspace, but also ran into issues with the libraries needed for 8bit quantization. 
 
 After the issues with GPT-J, we then switched over the LLaMA-LoRA using this [repository](https://betterprogramming.pub/fine-tuning-gpt-j-6b-on-google-colab-or-equivalent-desktop-or-server-gpu-b6dc849cb205).
-In this repository, we ran the Google-Colab that was provided so that we could finetune our model. 
+In this repository, we ran the Google-Colab that was provided so that we could fine-tune our model. 
 Jeremy was unable to run this at all, while Jack was able to run this on his computer and produced this [model]().
 
-While Jack was training with LLaMA-LoRA, Jeremy followed this [tutorial](https://www.mlexpert.io/machine-learning/tutorials/alpaca-fine-tuning) with Alpaca-LoRA to see if he would be able to finetune the model. 
-Using this tutorial, Jeremy created this [Google-Colab notebook](https://colab.research.google.com/drive/1a1azF8bSw3GVSqYl-diBmmde1-H1kPiQ?usp=sharing) to finetune the data. 
+While Jack was training with LLaMA-LoRA, Jeremy followed this [tutorial](https://www.mlexpert.io/machine-learning/tutorials/alpaca-fine-tuning) with Alpaca-LoRA to see if he would be able to fine-tune the model. 
+Using this tutorial, Jeremy created this [Google-Colab notebook](https://colab.research.google.com/drive/1a1azF8bSw3GVSqYl-diBmmde1-H1kPiQ?usp=sharing) to fine-tune the data. 
 With this, Jeremy created 3 HuggingFace models that held the weights for an Alpaca-LoRA model. ([model 1](https://huggingface.co/jsteve22/movie-weights), [model 2](https://huggingface.co/jsteve22/movie-weights1000), [model 3](https://huggingface.co/jsteve22/movie-weights100))
 After generating the models, Jeremy would reset the Google-Colab notebook and use the last 3 cells in order to create an interface to test the models. 
 However, the models often did not perform well if at all, even when provided direct sentences from the trained data the model would not reproduce the desired output. 
 
-## Data for finetuning
-In order to finetune the model, the model was given a prompt that it needed to complete while being subjected to a lot of examples. 
+## Data for fine-tuning
+In order to fine-tune the model, the model was given a prompt that it needed to complete while being subjected to a lot of examples. 
 The data that was fed into the model was formatted in a tuple of instruction, input, and output. 
 The instruction would inform the LLM how to respond, while the input would give context, and the output is the expected output.
 For each of our questions, we prompted the LLM to ask a question in the same vain.
@@ -54,9 +54,9 @@ However, our models did not live up to our expectations and did not provide the 
 ## What we learned and how we would move forward
 Through this project we learned a lot about how to find a data source and convert the data into a dataframe. 
 We then also learned how to use the dataframe to generate vectors in order to make a recommendation system using cosine similarity. 
-After creating a simple dialogue system, we then were able to generate a lot of examples that could be used for finetuning a model. 
+After creating a simple dialogue system, we then were able to generate a lot of examples that could be used for fine-tuning a model. 
 We then learned how to finetune a model with the generated data, even if we were not able to get the desired results. 
 
 In the future, if we were to continue working on this program, we would edit our generated data in a way such that it would be easier for the LLM to understand. 
 We would also spend more time finetuning and testing the different parameters for finetuning the model. 
-We would also invest in a GPU or GPU time so that we could reliably finetune a model instead of relying on the free GPUs provided by Google-Colab, since there were multiple times the notebook session would close or terminate while it was finetuning. 
+We would also invest in a GPU or GPU time so that we could reliably fine-tune a model instead of relying on the free GPUs provided by Google-Colab, since there were multiple times the notebook session would close or terminate while it was fine-tuning. 
